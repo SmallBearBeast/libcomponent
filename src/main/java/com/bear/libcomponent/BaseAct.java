@@ -122,26 +122,6 @@ public abstract class BaseAct extends AppCompatActivity {
 
     }
 
-    /**
-     * Put shared data for easy access by other components.
-     *
-     * @param key   The name of shared data.
-     * @param value The value of shared data.
-     */
-    public void put(@NonNull String key, @NonNull Object value) {
-        ViewModelProviders.of(this).get(ShareDataVM.class).put(key, value);
-    }
-
-    /**
-     * Get the value corresponding to the key
-     *
-     * @param key The name of shared data.
-     * @return The value of shared data.
-     */
-    public @NonNull <V> V get(@NonNull String key) {
-        return ViewModelProviders.of(this).get(ShareDataVM.class).get(key);
-    }
-
     protected View getDecorView() {
         return getWindow().getDecorView();
     }

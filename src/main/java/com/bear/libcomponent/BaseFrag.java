@@ -133,24 +133,4 @@ public abstract class BaseFrag extends Fragment {
     protected void onFirstVisible() {
 
     }
-
-    /**
-     * Put shared data for easy access by other components.
-     *
-     * @param key   The name of shared data.
-     * @param value The value of shared data.
-     */
-    protected void put(@NonNull String key, @NonNull Object value) {
-        ViewModelProviders.of(mBaseAct).get(ShareDataVM.class).put(key, value);
-    }
-
-    /**
-     * Get the value corresponding to the key
-     *
-     * @param key The name of shared data.
-     * @return The value of shared data.
-     */
-    protected @NonNull <V> V get(@NonNull String key) {
-        return ViewModelProviders.of(mBaseAct).get(ShareDataVM.class).get(key);
-    }
 }
