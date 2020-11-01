@@ -38,9 +38,6 @@ public abstract class BaseAct extends AppCompatActivity {
         if (intent != null) {
             handleIntent(intent);
         }
-        if (BuildConfig.DEBUG) {
-            getLifecycle().addObserver(new ActLifeDebug(TAG));
-        }
         setContentView(layoutId());
     }
 

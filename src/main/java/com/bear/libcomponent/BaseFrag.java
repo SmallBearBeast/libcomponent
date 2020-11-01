@@ -35,9 +35,6 @@ public abstract class BaseFrag extends Fragment {
     @CallSuper
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (BuildConfig.DEBUG) {
-            getLifecycle().addObserver(new FragLifeDebug(getClass().getSimpleName()));
-        }
         Intent intent = mBaseAct.getIntent();
         if (intent != null) {
             handleIntent(intent);
