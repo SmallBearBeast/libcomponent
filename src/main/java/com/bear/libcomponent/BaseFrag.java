@@ -25,9 +25,17 @@ public abstract class BaseFrag extends Fragment {
         super.onAttach(context);
         if (getContext() instanceof BaseAct) {
             mBaseAct = (BaseAct) getContext();
+            Intent intent = mBaseAct.getIntent();
+            if (intent != null) {
+                handleIntent(intent);
+            }
         }
         if (getParentFragment() instanceof BaseFrag) {
             mBaseFrag = (BaseFrag) getParentFragment();
+        }
+        Bundle bundle = getArguments();
+        if (bundle != null) {
+            handleArgument(bundle);
         }
     }
 
@@ -35,14 +43,6 @@ public abstract class BaseFrag extends Fragment {
     @CallSuper
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Intent intent = mBaseAct.getIntent();
-        if (intent != null) {
-            handleIntent(intent);
-        }
-        Bundle bundle = getArguments();
-        if (bundle != null) {
-            handleArgument(bundle);
-        }
     }
 
     @Nullable
