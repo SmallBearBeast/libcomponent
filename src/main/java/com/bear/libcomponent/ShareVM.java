@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModelProviders;
 import java.util.HashMap;
 import java.util.Map;
 
+@SuppressWarnings({"unchecked"})
 public class ShareVM extends ViewModel {
     private Map<String, Object> mShareDataMap;
 
@@ -39,7 +40,7 @@ public class ShareVM extends ViewModel {
      * @param key   The name of shared data.
      * @param value The value of shared data.
      */
-    public static void put(FragmentActivity activity, @NonNull String key, @NonNull Object value) {
+    public static void put(FragmentActivity activity, @NonNull String key, Object value) {
         ViewModelProviders.of(activity).get(ShareVM.class).put(key, value);
     }
 
@@ -49,7 +50,7 @@ public class ShareVM extends ViewModel {
      * @param key The name of shared data.
      * @return The value of shared data.
      */
-    public static @NonNull <V> V get(FragmentActivity activity, @NonNull String key) {
+    public static <V> V get(FragmentActivity activity, @NonNull String key) {
         return ViewModelProviders.of(activity).get(ShareVM.class).get(key);
     }
 
@@ -59,7 +60,7 @@ public class ShareVM extends ViewModel {
      * @param key   The name of shared data.
      * @param value The value of shared data.
      */
-    public static void put(Fragment fragment, @NonNull String key, @NonNull Object value) {
+    public static void put(Fragment fragment, @NonNull String key, Object value) {
         ViewModelProviders.of(fragment).get(ShareVM.class).put(key, value);
     }
 
@@ -69,7 +70,7 @@ public class ShareVM extends ViewModel {
      * @param key The name of shared data.
      * @return The value of shared data.
      */
-    public static @NonNull <V> V get(Fragment fragment, @NonNull String key) {
+    public static <V> V get(Fragment fragment, @NonNull String key) {
         return ViewModelProviders.of(fragment).get(ShareVM.class).get(key);
     }
 }
