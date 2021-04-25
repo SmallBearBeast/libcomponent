@@ -8,10 +8,14 @@ import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleEventObserver;
 import androidx.lifecycle.LifecycleOwner;
 
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@SuppressWarnings({"unchecked", "rawtypes"})
 public class ComponentService {
     private Map<LifecycleOwner, Map<ComponentKey, IComponent>> mLifecycleActComponentMap = new HashMap<>();
     private Map<LifecycleOwner, Map<ComponentKey, IComponent>> mLifecycleFragComponentMap = new HashMap<>();
@@ -80,29 +84,52 @@ public class ComponentService {
         regComponent(fragment, component, null);
     }
 
-    public <C extends IComponent> C getComponent(Class<C> clz, Object tag) {
-        ComponentKey componentKey = new ComponentKey(clz, tag);
-        for (Map.Entry<LifecycleOwner, Map<ComponentKey, IComponent>> mapEntry : mLifecycleActComponentMap.entrySet()) {
-            Map<ComponentKey, IComponent> componentMap = mapEntry.getValue();
-            if (componentMap != null) {
-                if (componentMap.containsKey(componentKey)) {
-                    return (C) componentMap.get(componentKey);
-                }
-            }
+    public <C> C getComponent(Class<C> clz) {
+        return getComponent(clz, null);
+    }
+
+    public <C> C getComponent(Class<C> clz, Object tag) {
+        if (!clz.isInterface()) {
+            throw new NoInterfaceException();
         }
-        for (Map.Entry<LifecycleOwner, Map<ComponentKey, IComponent>> mapEntry : mLifecycleFragComponentMap.entrySet()) {
+        ComponentKey componentKey = new ComponentKey(clz, tag);
+        C component = getComponentFromMap(mLifecycleActComponentMap, componentKey);
+        if (component == null) {
+            component = getComponentFromMap(mLifecycleFragComponentMap, componentKey);
+        }
+        if (component == null) {
+            component = getProxyComponent(clz);
+        }
+        return component;
+    }
+
+    private <C> C getComponentFromMap(Map<LifecycleOwner, Map<ComponentKey, IComponent>> lifecycleComponentMap, ComponentKey componentKey) {
+        for (Map.Entry<LifecycleOwner, Map<ComponentKey, IComponent>> mapEntry : lifecycleComponentMap.entrySet()) {
             Map<ComponentKey, IComponent> componentMap = mapEntry.getValue();
             if (componentMap != null) {
-                if (componentMap.containsKey(componentKey)) {
-                    return (C) componentMap.get(componentKey);
+                for (Map.Entry<ComponentKey, IComponent> entry: componentMap.entrySet()) {
+                    if (entry.getKey().equals(componentKey)) {
+                        return (C) entry.getValue();
+                    }
                 }
             }
         }
         return null;
     }
 
-    public <C extends IComponent> C getComponent(Class<C> clz) {
-        return getComponent(clz, null);
+    private <C> C getProxyComponent(Class<C> clz) {
+        try {
+            InvocationHandler invocationHandler = new InvocationHandler() {
+                @Override
+                public Object invoke(Object proxy, Method method, Object[] args) {
+                    return null;
+                }
+            };
+            return (C) Proxy.newProxyInstance(clz.getClassLoader(), new Class[] {clz}, invocationHandler);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     void onCreateView(ComponentFrag fragment, View contentView) {
@@ -175,4 +202,11 @@ public class ComponentService {
     private static class SingleTon {
         private static final ComponentService INSTANCE = new ComponentService();
     }
+
+    private static class NoInterfaceException extends RuntimeException {
+        private NoInterfaceException() {
+            super("The class should be interface");
+        }
+    }
+
 }

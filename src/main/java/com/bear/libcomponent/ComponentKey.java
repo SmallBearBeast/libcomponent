@@ -2,22 +2,23 @@ package com.bear.libcomponent;
 
 import java.util.Objects;
 
-class ComponentKey {
-    Class clz;
+class ComponentKey<C> {
+    private Class<C> clz;
 
-    Object tag;
+    private Object tag;
 
-    public ComponentKey(Class clz, Object tag) {
+    public ComponentKey(Class<C> clz, Object tag) {
         this.clz = clz;
         this.tag = tag;
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ComponentKey that = (ComponentKey) o;
-        return Objects.equals(clz, that.clz) &&
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null) return false;
+        ComponentKey that = (ComponentKey) obj;
+        return that.clz.isAssignableFrom(clz) &&
                 Objects.equals(tag, that.tag);
     }
 
