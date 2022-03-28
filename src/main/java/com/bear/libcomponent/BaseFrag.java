@@ -49,7 +49,13 @@ public abstract class BaseFrag extends Fragment {
     @Override
     @CallSuper
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(layoutId(), container, false);
+        View view = layoutView();
+        if (view != null) {
+            return view;
+        } else if (layoutId() != 0) {
+            return inflater.inflate(layoutId(), container, false);
+        }
+        return null;
     }
 
     @Override
@@ -116,6 +122,9 @@ public abstract class BaseFrag extends Fragment {
     }
 
     protected abstract int layoutId();
+    protected View layoutView() {
+        return null;
+    }
 
     private void dispatchFirstVisible() {
         if (mIsFirstVisible) {
