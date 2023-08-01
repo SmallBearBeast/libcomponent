@@ -4,7 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.ViewModel;
-import androidx.lifecycle.ViewModelProviders;
+import androidx.lifecycle.ViewModelProvider;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -41,7 +41,8 @@ public class ShareVM extends ViewModel {
      * @param value The value of shared data.
      */
     public static void put(FragmentActivity activity, @NonNull String key, Object value) {
-        ViewModelProviders.of(activity).get(ShareVM.class).put(key, value);
+        ViewModelProvider provider = new ViewModelProvider(activity, new ViewModelProvider.NewInstanceFactory());
+        provider.get(ShareVM.class).put(key, value);
     }
 
     /**
@@ -51,7 +52,8 @@ public class ShareVM extends ViewModel {
      * @return The value of shared data.
      */
     public static <V> V get(FragmentActivity activity, @NonNull String key) {
-        return ViewModelProviders.of(activity).get(ShareVM.class).get(key);
+        ViewModelProvider provider = new ViewModelProvider(activity, new ViewModelProvider.NewInstanceFactory());
+        return provider.get(ShareVM.class).get(key);
     }
 
     /**
@@ -61,7 +63,8 @@ public class ShareVM extends ViewModel {
      * @param value The value of shared data.
      */
     public static void put(Fragment fragment, @NonNull String key, Object value) {
-        ViewModelProviders.of(fragment).get(ShareVM.class).put(key, value);
+        ViewModelProvider provider = new ViewModelProvider(fragment, new ViewModelProvider.NewInstanceFactory());
+        provider.get(ShareVM.class).put(key, value);
     }
 
     /**
@@ -71,6 +74,7 @@ public class ShareVM extends ViewModel {
      * @return The value of shared data.
      */
     public static <V> V get(Fragment fragment, @NonNull String key) {
-        return ViewModelProviders.of(fragment).get(ShareVM.class).get(key);
+        ViewModelProvider provider = new ViewModelProvider(fragment, new ViewModelProvider.NewInstanceFactory());
+        return provider.get(ShareVM.class).get(key);
     }
 }
