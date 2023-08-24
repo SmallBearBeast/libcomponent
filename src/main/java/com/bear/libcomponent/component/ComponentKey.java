@@ -1,11 +1,10 @@
-package com.bear.libcomponent;
+package com.bear.libcomponent.component;
 
 import java.util.Objects;
 
 class ComponentKey<C> {
-    private Class<C> clz;
-
-    private Object tag;
+    private final Class<C> clz;
+    private final Object tag;
 
     public ComponentKey(Class<C> clz, Object tag) {
         this.clz = clz;

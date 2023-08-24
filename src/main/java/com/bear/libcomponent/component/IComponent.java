@@ -1,4 +1,4 @@
-package com.bear.libcomponent;
+package com.bear.libcomponent.component;
 
 import androidx.lifecycle.LifecycleEventObserver;
 

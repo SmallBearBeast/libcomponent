@@ -1,4 +1,4 @@
-package com.bear.libcomponent;
+package com.bear.libcomponent.base;
 
 import android.content.Context;
 import android.content.Intent;

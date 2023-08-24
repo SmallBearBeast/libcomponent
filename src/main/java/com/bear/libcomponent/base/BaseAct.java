@@ -1,4 +1,4 @@
-package com.bear.libcomponent;
+package com.bear.libcomponent.base;
 
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -17,12 +17,12 @@ import java.util.List;
 public abstract class BaseAct extends AppCompatActivity {
     protected final String TAG = getClass().getSimpleName();
     private static final int Permission_Request_Code = 1;
-    private PermissionListener mPermissionListener;
-    private ActResultListener mActResultListener;
-    private List<BackListener> mBackListenerList = new ArrayList<>();
+    private PermissionListener permissionListener;
+    private ActResultListener actResultListener;
+    private final List<BackListener> backListenerList = new ArrayList<>();
 
     {
-        mBackListenerList.add(new BackListener() {
+        backListenerList.add(new BackListener() {
             @Override
             public void onBackPressed() {
                 BaseAct.super.onBackPressed();
@@ -40,21 +40,17 @@ public abstract class BaseAct extends AppCompatActivity {
         setContentView(layoutId());
     }
 
-    public interface ActResultListener {
-        void onActivityResult(int requestCode, int resultCode, Intent data);
+    protected void handleIntent(@NonNull Intent intent) {
+
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (mActResultListener != null) {
-            mActResultListener.onActivityResult(requestCode, resultCode, data);
-            mActResultListener = null;
+        if (actResultListener != null) {
+            actResultListener.onActivityResult(requestCode, resultCode, data);
+            actResultListener = null;
         }
-    }
-
-    public interface PermissionListener {
-        void onPermissionRequest(List<String> permissionSuccessArray, List<String> permissionFailArray);
     }
 
     /**
@@ -65,7 +61,7 @@ public abstract class BaseAct extends AppCompatActivity {
      * @return true: Do request permission. false: Have request permission and not to do.
      */
     public boolean requestPermissions(String[] permissions, PermissionListener listener) {
-        mPermissionListener = listener;
+        permissionListener = listener;
         List<String> needToAsk = new ArrayList<>();
         for (String s : permissions) {
             if (!isCheckPermission(s)) {
@@ -80,7 +76,7 @@ public abstract class BaseAct extends AppCompatActivity {
             ActivityCompat.requestPermissions(this, needToAsk.toArray(new String[needToAsk.size()]), Permission_Request_Code);
             return true;
         }
-        mPermissionListener = null;
+        permissionListener = null;
         return false;
     }
 
@@ -105,40 +101,45 @@ public abstract class BaseAct extends AppCompatActivity {
                     permissionFailArray.add(permissions[i]);
                 }
             }
-            if (mPermissionListener != null) {
-                mPermissionListener.onPermissionRequest(permissionSuccessArray, permissionFailArray);
-                mPermissionListener = null;
+            if (permissionListener != null) {
+                permissionListener.onPermissionRequest(permissionSuccessArray, permissionFailArray);
+                permissionListener = null;
             }
         }
-    }
-
-    protected abstract int layoutId();
-
-    protected void handleIntent(@NonNull Intent intent) {
-
-    }
-
-    protected View getDecorView() {
-        return getWindow().getDecorView();
-    }
-
-    protected void setActResultListener(ActResultListener actResultListener) {
-        mActResultListener = actResultListener;
-    }
-
-    public interface BackListener {
-        void onBackPressed();
-    }
-
-    public void addBackListener(@NonNull BackListener backListener) {
-        mBackListenerList.add(backListener);
     }
 
     @Override
     @CallSuper
     public void onBackPressed() {
-        for (BackListener backListener : mBackListenerList) {
+        super.onBackPressed();
+        for (BackListener backListener : backListenerList) {
             backListener.onBackPressed();
         }
+    }
+
+    public void addBackListener(@NonNull BackListener backListener) {
+        backListenerList.add(backListener);
+    }
+
+    protected void setActResultListener(ActResultListener actResultListener) {
+        this.actResultListener = actResultListener;
+    }
+
+    public View getDecorView() {
+        return getWindow().getDecorView();
+    }
+
+    protected abstract int layoutId();
+
+    public interface BackListener {
+        void onBackPressed();
+    }
+
+    public interface ActResultListener {
+        void onActivityResult(int requestCode, int resultCode, Intent data);
+    }
+
+    public interface PermissionListener {
+        void onPermissionRequest(List<String> permissionSuccessArray, List<String> permissionFailArray);
     }
 }
