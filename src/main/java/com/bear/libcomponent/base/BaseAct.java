@@ -5,7 +5,6 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.View;
 
-import androidx.annotation.CallSuper;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -19,16 +18,6 @@ public abstract class BaseAct extends AppCompatActivity {
     private static final int Permission_Request_Code = 1;
     private PermissionListener permissionListener;
     private ActResultListener actResultListener;
-    private final List<BackListener> backListenerList = new ArrayList<>();
-
-    {
-        backListenerList.add(new BackListener() {
-            @Override
-            public void onBackPressed() {
-                BaseAct.super.onBackPressed();
-            }
-        });
-    }
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -108,17 +97,8 @@ public abstract class BaseAct extends AppCompatActivity {
         }
     }
 
-    @Override
-    @CallSuper
-    public void onBackPressed() {
-        super.onBackPressed();
-        for (BackListener backListener : backListenerList) {
-            backListener.onBackPressed();
-        }
-    }
-
-    public void addBackListener(@NonNull BackListener backListener) {
-        backListenerList.add(backListener);
+    public void addBackPressedListener(@NonNull BackPressedHelper.BackPressedListener listener) {
+        BackPressedHelper.addBackPressedListener(this, listener);
     }
 
     protected void setActResultListener(ActResultListener actResultListener) {
@@ -130,10 +110,6 @@ public abstract class BaseAct extends AppCompatActivity {
     }
 
     protected abstract int layoutId();
-
-    public interface BackListener {
-        void onBackPressed();
-    }
 
     public interface ActResultListener {
         void onActivityResult(int requestCode, int resultCode, Intent data);

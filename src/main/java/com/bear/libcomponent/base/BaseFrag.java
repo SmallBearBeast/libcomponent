@@ -117,12 +117,7 @@ public abstract class BaseFrag extends Fragment {
     }
 
     protected void handleArgument(@NonNull Bundle bundle) {
-
-    }
-
-    protected abstract int layoutId();
-    protected View layoutView() {
-        return null;
+        requestPermissions();
     }
 
     private void dispatchFirstVisible() {
@@ -132,10 +127,20 @@ public abstract class BaseFrag extends Fragment {
         }
     }
 
+    public void addBackPressedListener(@NonNull BackPressedHelper.BackPressedListener listener) {
+        BackPressedHelper.addBackPressedListener(this, listener);
+    }
+
     /**
      * This method is called when fragment is first visible
      */
     protected void onFirstVisible() {
 
+    }
+
+    protected abstract int layoutId();
+
+    protected View layoutView() {
+        return null;
     }
 }
