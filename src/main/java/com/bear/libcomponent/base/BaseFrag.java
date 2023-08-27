@@ -14,23 +14,23 @@ import androidx.fragment.app.Fragment;
 
 public abstract class BaseFrag extends Fragment {
     protected String TAG = getClass().getSimpleName();
-    private boolean mIsFirstVisible = true;
-    protected BaseAct mBaseAct;
-    protected BaseFrag mBaseFrag;
+    private boolean firstVisible = true;
+    private BaseAct baseAct;
+    private BaseFrag baseFrag;
 
     @Override
     @CallSuper
     public void onAttach(Context context) {
         super.onAttach(context);
         if (getContext() instanceof BaseAct) {
-            mBaseAct = (BaseAct) getContext();
-            Intent intent = mBaseAct.getIntent();
+            baseAct = (BaseAct) getContext();
+            Intent intent = baseAct.getIntent();
             if (intent != null) {
                 handleIntent(intent);
             }
         }
         if (getParentFragment() instanceof BaseFrag) {
-            mBaseFrag = (BaseFrag) getParentFragment();
+            baseFrag = (BaseFrag) getParentFragment();
         }
         Bundle bundle = getArguments();
         if (bundle != null) {
@@ -38,10 +38,12 @@ public abstract class BaseFrag extends Fragment {
         }
     }
 
-    @Override
-    @CallSuper
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    protected void handleIntent(@NonNull Intent intent) {
+
+    }
+
+    protected void handleArgument(@NonNull Bundle bundle) {
+
     }
 
     @Nullable
@@ -63,70 +65,24 @@ public abstract class BaseFrag extends Fragment {
         dispatchFirstVisible();
     }
 
-//    private boolean mIsVisibleToUser;
-//    private boolean mIsCallResume;
-
-//    @Override
-//    public void onResume() {
-//        super.onResume();
-//        mIsCallResume = true;
-//        if (mIsVisibleToUser) {
-//            dispatchFirstVisible();
-//        }
-//        dispatchFirstVisible();
-//    }
-//
-//    @Override
-//    @CallSuper
-//    public void setUserVisibleHint(boolean isVisibleToUser) {
-//        super.setUserVisibleHint(isVisibleToUser);
-//        mIsVisibleToUser = isVisibleToUser;
-//        if (getActivity() != null) {
-//            if (mIsCallResume && mIsVisibleToUser) {
-//                dispatchFirstVisible();
-//            }
-//        }
-//    }
-//
-//    /**
-//     * The method will only be called if there are nested fragments in the fragment.
-//     * Solve the problem which the visibility of multiple child fragments is true during initialization.
-//     * The basis is that as long as the visibility of the parent fragment is false, the visibility of the child fragment is also false
-//     */
-//    @Override
-//    @CallSuper
-//    public void onAttachFragment(Fragment childFragment) {
-//        boolean isVisibleToUser = getUserVisibleHint();
-//        if (!isVisibleToUser) {
-//            if (childFragment.getUserVisibleHint()) {
-//                childFragment.setUserVisibleHint(false);
-//            }
-//        }
-//    }
+    private void dispatchFirstVisible() {
+        if (firstVisible) {
+            onFirstVisible();
+            firstVisible = false;
+        }
+    }
 
     @Override
     @CallSuper
     public void onDetach() {
         super.onDetach();
-        mBaseAct = null;
-        mBaseFrag = null;
+        baseAct = null;
+        baseFrag = null;
     }
 
-    protected void handleIntent(@NonNull Intent intent) {
-
-    }
-
-    protected void handleArgument(@NonNull Bundle bundle) {
-        requestPermissions();
-    }
-
-    private void dispatchFirstVisible() {
-        if (mIsFirstVisible) {
-            onFirstVisible();
-            mIsFirstVisible = false;
-        }
-    }
-
+    /**
+     * This method is called when clicking the back button.
+     */
     public void addBackPressedListener(@NonNull BackPressedHelper.BackPressedListener listener) {
         BackPressedHelper.addBackPressedListener(this, listener);
     }
@@ -142,5 +98,13 @@ public abstract class BaseFrag extends Fragment {
 
     protected View layoutView() {
         return null;
+    }
+
+    public BaseAct getBaseAct() {
+        return baseAct;
+    }
+
+    public BaseFrag getBaseFrag() {
+        return baseFrag;
     }
 }
