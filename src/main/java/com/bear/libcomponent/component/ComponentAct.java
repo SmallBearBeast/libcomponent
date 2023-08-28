@@ -22,6 +22,6 @@ public abstract class ComponentAct extends BaseAct {
     @Override
     public void onBackPressed() {
         super.onBackPressed();
-        ComponentService.get().onBackPressed(this);
+        ComponentService.get().onBackPressed();
     }
 }

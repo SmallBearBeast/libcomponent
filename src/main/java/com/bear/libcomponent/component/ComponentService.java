@@ -1,10 +1,14 @@
 package com.bear.libcomponent.component;
 
+import android.app.Activity;
+import android.app.Application;
 import android.content.Context;
+import android.os.Bundle;
 import android.view.View;
 
 import androidx.annotation.NonNull;
-import androidx.fragment.app.Fragment;
+import androidx.annotation.Nullable;
+import androidx.core.util.Pair;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleEventObserver;
 import androidx.lifecycle.LifecycleOwner;
@@ -12,13 +16,13 @@ import androidx.lifecycle.LifecycleOwner;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
-import java.util.List;
+import java.util.LinkedList;
 import java.util.Map;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class ComponentService {
-    private final Map<LifecycleOwner, Map<ComponentKey, IComponent>> actComponentMap = new HashMap<>();
-    private final Map<LifecycleOwner, Map<ComponentKey, IComponent>> fragComponentMap = new HashMap<>();
+
+    private final PageComponentStack pageComponentStack = new PageComponentStack();
 
     public static ComponentService get() {
         return SingleTon.INSTANCE;
@@ -28,34 +32,79 @@ public class ComponentService {
         private static final ComponentService INSTANCE = new ComponentService();
     }
 
-    public <C extends IComponent> void regActComponent(ComponentAct activity, C component) {
+    public void init(Application app) {
+        app.registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {
+
+            @Override
+            public void onActivityPreCreated(@NonNull Activity activity, @Nullable Bundle savedInstanceState) {
+                pageComponentStack.createComponentMap(activity.hashCode());
+            }
+
+            @Override
+            public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle savedInstanceState) {
+
+            }
+
+            @Override
+            public void onActivityStarted(@NonNull Activity activity) {
+
+            }
+
+            @Override
+            public void onActivityResumed(@NonNull Activity activity) {
+
+            }
+
+            @Override
+            public void onActivityPaused(@NonNull Activity activity) {
+
+            }
+
+            @Override
+            public void onActivityStopped(@NonNull Activity activity) {
+
+            }
+
+            @Override
+            public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle outState) {
+
+            }
+
+            @Override
+            public void onActivityDestroyed(@NonNull Activity activity) {
+
+            }
+
+            @Override
+            public void onActivityPostDestroyed(@NonNull Activity activity) {
+                pageComponentStack.destroyComponentMap(activity.hashCode());
+            }
+        });
+    }
+
+    public <C extends IComponent> void regActComponent(ComponentAct activity, @NonNull C component) {
         regActComponent(activity, component, null);
     }
 
-    public <C extends IComponent> void regActComponent(ComponentAct activity, C component, Object tag) {
-        if (component != null) {
-            if (component instanceof BaseComponent) {
-                ((BaseComponent) component).attachContext(activity);
-                ((BaseComponent) component).attachView(activity.getDecorView());
-            }
-            if (!actComponentMap.containsKey(activity)) {
-                actComponentMap.put(activity, new HashMap<>());
-            }
-            Map<ComponentKey, IComponent> componentMap = actComponentMap.get(activity);
-            if (componentMap != null) {
-                componentMap.put(new ComponentKey(component.getClass(), tag), component);
-            }
-            activity.getLifecycle().addObserver(new LifecycleEventObserver() {
-                @Override
-                public void onStateChanged(@NonNull LifecycleOwner source, @NonNull Lifecycle.Event event) {
-                    component.onStateChanged(source, event);
-                    if (event == Lifecycle.Event.ON_DESTROY) {
-                        source.getLifecycle().removeObserver(this);
-                        actComponentMap.remove(source);
-                    }
-                }
-            });
+    public <C extends IComponent> void regActComponent(ComponentAct activity, @NonNull C component, @Nullable Object tag) {
+        if (pageComponentStack.containComponent(component.getClass(), tag)) {
+            throw new RuntimeException("Can not register component with same type and tag");
         }
+        if (component instanceof BaseComponent) {
+            ((BaseComponent) component).attachContext(activity);
+            ((BaseComponent) component).attachView(activity.getDecorView());
+        }
+        pageComponentStack.putComponent(component, tag);
+        activity.getLifecycle().addObserver(new LifecycleEventObserver() {
+            @Override
+            public void onStateChanged(@NonNull LifecycleOwner source, @NonNull Lifecycle.Event event) {
+                component.onStateChanged(source, event);
+                if (event == Lifecycle.Event.ON_DESTROY) {
+                    source.getLifecycle().removeObserver(this);
+                    pageComponentStack.removeComponent(component, tag);
+                }
+            }
+        });
     }
 
     public <C extends IComponent> void regFragComponent(ComponentFrag fragment, C component) {
@@ -74,77 +123,55 @@ public class ComponentService {
         regFragComponent(fragment, fragment.getViewLifecycleOwner().getLifecycle(), component, tag);
     }
 
-    private <C extends IComponent> void regFragComponent(ComponentFrag fragment, Lifecycle lifecycle, C component, Object tag) {
-        if (component != null) {
-            if (component instanceof BaseComponent) {
-                ((BaseComponent) component).attachContext(fragment.getContext());
-                ((BaseComponent) component).attachView(fragment.getView());
-            }
-            if (!fragComponentMap.containsKey(fragment)) {
-                fragComponentMap.put(fragment, new HashMap<>());
-            }
-            Map<ComponentKey, IComponent> componentMap = fragComponentMap.get(fragment);
-            if (componentMap != null) {
-                componentMap.put(new ComponentKey(component.getClass(), tag), component);
-            }
-            lifecycle.addObserver(new LifecycleEventObserver() {
-                @Override
-                public void onStateChanged(@NonNull LifecycleOwner source, @NonNull Lifecycle.Event event) {
-                    component.onStateChanged(source, event);
-                    if (event == Lifecycle.Event.ON_DESTROY) {
-                        source.getLifecycle().removeObserver(this);
-                        fragComponentMap.remove(source);
-                    }
-                }
-            });
+    private <C extends IComponent> void regFragComponent(ComponentFrag fragment, Lifecycle lifecycle, @NonNull C component, @Nullable Object tag) {
+        if (pageComponentStack.containComponent(component.getClass(), tag)) {
+            throw new RuntimeException("Can not register component with same type and tag");
         }
+        if (component instanceof BaseComponent) {
+            ((BaseComponent) component).attachContext(fragment.getContext());
+            ((BaseComponent) component).attachView(fragment.getView());
+        }
+        pageComponentStack.putComponent(component, tag);
+        lifecycle.addObserver(new LifecycleEventObserver() {
+            @Override
+            public void onStateChanged(@NonNull LifecycleOwner source, @NonNull Lifecycle.Event event) {
+                component.onStateChanged(source, event);
+                if (event == Lifecycle.Event.ON_DESTROY) {
+                    source.getLifecycle().removeObserver(this);
+                    pageComponentStack.removeComponent(component, tag);
+                }
+            }
+        });
     }
 
-    public <C> C getComponent(Class<C> clz) {
+    public <C extends IComponent> C getComponent(Class<C> clz) {
         return getComponent(clz, null);
     }
 
-    public <C> C getComponent(Class<C> clz, Object tag) {
-        if (!clz.isInterface()) {
-            throw new NoInterfaceException();
+    public <C extends IComponent> C getComponent(Class<C> clz, Object tag) {
+        if (pageComponentStack.usePrevPageComponent(clz, tag)) {
+            throw new RuntimeException("Can not use prev page component");
         }
-        ComponentKey componentKey = new ComponentKey(clz, tag);
-        C component = getComponentFromMap(actComponentMap, componentKey);
-        if (component == null) {
-            component = getComponentFromMap(fragComponentMap, componentKey);
-        }
+        C component = pageComponentStack.getComponent(clz, tag);
         if (component == null) {
             component = getProxyComponent(clz);
+            pageComponentStack.putComponent(component, tag);
         }
         return component;
     }
 
-    private <C> C getComponentFromMap(Map<LifecycleOwner, Map<ComponentKey, IComponent>> lifecycleComponentMap, ComponentKey componentKey) {
-        for (Map.Entry<LifecycleOwner, Map<ComponentKey, IComponent>> mapEntry : lifecycleComponentMap.entrySet()) {
-            Map<ComponentKey, IComponent> componentMap = mapEntry.getValue();
-            if (componentMap != null) {
-                for (Map.Entry<ComponentKey, IComponent> entry: componentMap.entrySet()) {
-                    if (entry.getKey().equals(componentKey)) {
-                        return (C) entry.getValue();
-                    }
-                }
-            }
-        }
-        return null;
-    }
-
-    private <C> C getProxyComponent(Class<C> clz) {
+    private <C extends IComponent> C getProxyComponent(Class<C> clz) {
         try {
             InvocationHandler invocationHandler = (proxy, method, args) -> null;
-            return (C) Proxy.newProxyInstance(clz.getClassLoader(), new Class[] {clz}, invocationHandler);
+            return (C) Proxy.newProxyInstance(clz.getClassLoader(), new Class[]{clz}, invocationHandler);
         } catch (Exception e) {
             e.printStackTrace();
         }
         return null;
     }
 
-    void dispatchOnCreateView(ComponentFrag fragment, View contentView) {
-        Map<ComponentKey, IComponent> componentMap = fragComponentMap.get(fragment);
+    void dispatchOnCreateView(View contentView) {
+        Map<ComponentKey, IComponent> componentMap = pageComponentStack.getTopComponentMap();
         if (componentMap != null) {
             for (IComponent component : componentMap.values()) {
                 if (component instanceof FragmentComponent) {
@@ -155,8 +182,8 @@ public class ComponentService {
         }
     }
 
-    void dispatchOnDestroyView(ComponentFrag fragment) {
-        Map<ComponentKey, IComponent> componentMap = fragComponentMap.get(fragment);
+    void dispatchOnDestroyView() {
+        Map<ComponentKey, IComponent> componentMap = pageComponentStack.getTopComponentMap();
         if (componentMap != null) {
             for (IComponent component : componentMap.values()) {
                 if (component instanceof FragmentComponent) {
@@ -167,8 +194,8 @@ public class ComponentService {
         }
     }
 
-    void dispatchOnAttach(ComponentFrag fragment, Context context) {
-        Map<ComponentKey, IComponent> componentMap = fragComponentMap.get(fragment);
+    void dispatchOnAttach(Context context) {
+        Map<ComponentKey, IComponent> componentMap = pageComponentStack.getTopComponentMap();
         if (componentMap != null) {
             for (IComponent component : componentMap.values()) {
                 if (component instanceof FragmentComponent) {
@@ -178,8 +205,8 @@ public class ComponentService {
         }
     }
 
-    void onDetach(ComponentFrag fragment) {
-        Map<ComponentKey, IComponent> componentMap = fragComponentMap.get(fragment);
+    void onDetach() {
+        Map<ComponentKey, IComponent> componentMap = pageComponentStack.getTopComponentMap();
         if (componentMap != null) {
             for (IComponent component : componentMap.values()) {
                 if (component instanceof FragmentComponent) {
@@ -189,8 +216,8 @@ public class ComponentService {
         }
     }
 
-    void onFirstVisible(ComponentFrag fragment) {
-        Map<ComponentKey, IComponent> componentMap = fragComponentMap.get(fragment);
+    void onFirstVisible() {
+        Map<ComponentKey, IComponent> componentMap = pageComponentStack.getTopComponentMap();
         if (componentMap != null) {
             for (IComponent component : componentMap.values()) {
                 if (component instanceof FragmentComponent) {
@@ -200,8 +227,8 @@ public class ComponentService {
         }
     }
 
-    void onBackPressed(ComponentAct activity) {
-        Map<ComponentKey, IComponent> componentMap = actComponentMap.get(activity);
+    void onBackPressed() {
+        Map<ComponentKey, IComponent> componentMap = pageComponentStack.getTopComponentMap();
         if (componentMap != null) {
             for (IComponent component : componentMap.values()) {
                 if (component instanceof BaseComponent) {
@@ -209,23 +236,112 @@ public class ComponentService {
                 }
             }
         }
-        List<Fragment> fragmentList = activity.getSupportFragmentManager().getFragments();
-        for (Fragment fragment : fragmentList) {
-            componentMap = fragComponentMap.get(fragment);
-            if (componentMap != null) {
-                for (IComponent component : componentMap.values()) {
-                    if (component instanceof BaseComponent) {
-                        ((BaseComponent) component).onBackPressed();
+    }
+
+    // 防止调用之前页面的组件。
+    private static class PageComponentStack extends LinkedList<Pair<Integer, Map<ComponentKey, IComponent>>> {
+
+        private void createComponentMap(int hashCode) {
+            push(new Pair<>(hashCode, new HashMap()));
+        }
+
+        private void destroyComponentMap(int hashCode) {
+            int removeIndex = -1;
+            for (int i = 0; i < size(); i++) {
+                Pair<Integer, Map<ComponentKey, IComponent>> pair = get(i);
+                if (pair != null && pair.first != null && pair.first == hashCode) {
+                    removeIndex = i;
+                    break;
+                }
+            }
+            if (removeIndex != -1) {
+                Pair<Integer, Map<ComponentKey, IComponent>> pair = remove(removeIndex);
+                if (pair != null && pair.second != null) {
+                    pair.second.clear();
+                }
+            }
+        }
+
+        private void putComponent(IComponent component, Object tag) {
+            if (!isEmpty()) {
+                Pair<Integer, Map<ComponentKey, IComponent>> pair = peek();
+                Map<ComponentKey, IComponent> map = null;
+                if (pair != null) {
+                    map = pair.second;
+                }
+                if (map == null) {
+                    map = new HashMap<>();
+                }
+                map.put(new ComponentKey(component.getClass(), tag), component);
+            }
+        }
+
+        private <C extends IComponent> C getComponent(Class<C> clz, Object tag) {
+            if (!isEmpty()) {
+                Pair<Integer, Map<ComponentKey, IComponent>> pair = peek();
+                if (pair != null) {
+                    Map<ComponentKey, IComponent> map = pair.second;
+                    if (map != null) {
+                        ComponentKey componentKey = new ComponentKey(clz, tag);
+                        return (C) map.get(componentKey);
+                    }
+                }
+            }
+            return null;
+        }
+
+        private void removeComponent(IComponent component, Object tag) {
+            if (!isEmpty()) {
+                Pair<Integer, Map<ComponentKey, IComponent>> pair = peek();
+                if (pair != null) {
+                    Map<ComponentKey, IComponent> map = pair.second;
+                    if (map != null) {
+                        ComponentKey componentKey = new ComponentKey(component.getClass(), tag);
+                        map.remove(componentKey);
                     }
                 }
             }
         }
-    }
 
-    private static class NoInterfaceException extends RuntimeException {
-        private NoInterfaceException() {
-            super("The class should be interface");
+        private Map<ComponentKey, IComponent> getTopComponentMap() {
+            Pair<Integer, Map<ComponentKey, IComponent>> pair = peek();
+            if (pair != null && pair.second != null) {
+                return pair.second;
+            }
+            return new HashMap<>();
+        }
+
+        private <C extends IComponent> boolean usePrevPageComponent(Class<C> clz, Object tag) {
+            if (!isEmpty()) {
+                Pair<Integer, Map<ComponentKey, IComponent>> pair = pop();
+                if (pair != null) {
+                    Map<ComponentKey, IComponent> map = pair.second;
+                    if (map != null) {
+                        ComponentKey componentKey = new ComponentKey(clz, tag);
+                        for (Pair<Integer, Map<ComponentKey, IComponent>> pairMap : this) {
+                            if (pairMap.second != null && pairMap.second.containsKey(componentKey)) {
+                                return true;
+                            }
+                        }
+                        push(pair);
+                    }
+                }
+            }
+            return false;
+        }
+
+        private <C extends IComponent> boolean containComponent(Class<C> clz, Object tag) {
+            if (!isEmpty()) {
+                Pair<Integer, Map<ComponentKey, IComponent>> pair = peek();
+                if (pair != null) {
+                    Map<ComponentKey, IComponent> map = pair.second;
+                    if (map != null) {
+                        ComponentKey componentKey = new ComponentKey(clz, tag);
+                        return map.containsKey(componentKey);
+                    }
+                }
+            }
+            return false;
         }
     }
-
 }
