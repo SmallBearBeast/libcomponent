@@ -41,12 +41,12 @@ public abstract class ComponentFrag extends BaseFrag {
     @CallSuper
     public void onDetach() {
         super.onDetach();
-        ComponentService.get().onDetach();
+        ComponentService.get().dispatchOnDetach();
     }
 
     @Override
     protected void onFirstVisible() {
-        ComponentService.get().onFirstVisible();
+        ComponentService.get().dispatchOnFirstVisible();
     }
 
     public void regFragComponent(IComponent component, Object tag) {

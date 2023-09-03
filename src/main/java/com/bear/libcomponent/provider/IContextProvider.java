@@ -1,4 +1,4 @@
-package com.bear.libcomponent.component;
+package com.bear.libcomponent.provider;
 
 import android.content.Context;
 

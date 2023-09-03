@@ -1,5 +1,8 @@
 package com.bear.libcomponent.component;
 
-public class ActivityComponent extends BaseComponent {
+import com.bear.libcomponent.provider.IBackPressedProvider;
+import com.bear.libcomponent.provider.IMenuProvider;
+
+public class ActivityComponent extends BaseComponent implements IBackPressedProvider, IMenuProvider {
 
 }

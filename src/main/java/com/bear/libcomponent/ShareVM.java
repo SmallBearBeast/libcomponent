@@ -11,27 +11,27 @@ import java.util.Map;
 
 @SuppressWarnings({"unchecked"})
 public class ShareVM extends ViewModel {
-    private Map<String, Object> mShareDataMap;
+    private Map<String, Object> shareDataMap;
 
     public void put(String key, Object value) {
-        if (mShareDataMap == null) {
-            mShareDataMap = new HashMap<>();
+        if (shareDataMap == null) {
+            shareDataMap = new HashMap<>();
         }
-        mShareDataMap.put(key, value);
+        shareDataMap.put(key, value);
     }
 
     public <V> V get(String key) {
-        if (mShareDataMap == null) {
+        if (shareDataMap == null) {
             return null;
         }
-        Object obj = mShareDataMap.get(key);
+        Object obj = shareDataMap.get(key);
         return (V) obj;
     }
 
     @Override
     protected void onCleared() {
-        mShareDataMap.clear();
-        mShareDataMap = null;
+        shareDataMap.clear();
+        shareDataMap = null;
     }
 
     /**

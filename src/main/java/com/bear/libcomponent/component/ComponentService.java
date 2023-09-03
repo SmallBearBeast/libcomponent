@@ -4,6 +4,10 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.os.Bundle;
+import android.view.ContextMenu;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 
 import androidx.annotation.NonNull;
@@ -12,6 +16,9 @@ import androidx.core.util.Pair;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleEventObserver;
 import androidx.lifecycle.LifecycleOwner;
+
+import com.bear.libcomponent.provider.IBackPressedProvider;
+import com.bear.libcomponent.provider.IMenuProvider;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
@@ -205,7 +212,7 @@ public class ComponentService {
         }
     }
 
-    void onDetach() {
+    void dispatchOnDetach() {
         Map<ComponentKey, IComponent> componentMap = pageComponentStack.getTopComponentMap();
         if (componentMap != null) {
             for (IComponent component : componentMap.values()) {
@@ -216,7 +223,7 @@ public class ComponentService {
         }
     }
 
-    void onFirstVisible() {
+    void dispatchOnFirstVisible() {
         Map<ComponentKey, IComponent> componentMap = pageComponentStack.getTopComponentMap();
         if (componentMap != null) {
             for (IComponent component : componentMap.values()) {
@@ -227,15 +234,65 @@ public class ComponentService {
         }
     }
 
-    void onBackPressed() {
+    void dispatchOnBackPressed() {
         Map<ComponentKey, IComponent> componentMap = pageComponentStack.getTopComponentMap();
         if (componentMap != null) {
             for (IComponent component : componentMap.values()) {
-                if (component instanceof BaseComponent) {
-                    ((BaseComponent) component).onBackPressed();
+                if (component instanceof IBackPressedProvider) {
+                    ((IBackPressedProvider) component).onBackPressed();
                 }
             }
         }
+    }
+
+    boolean dispatchOnCreateOptionsMenu(Menu menu, MenuInflater menuInflater) {
+        Map<ComponentKey, IComponent> componentMap = pageComponentStack.getTopComponentMap();
+        boolean created = false;
+        if (componentMap != null) {
+            for (IComponent component : componentMap.values()) {
+                if (component instanceof IMenuProvider) {
+                    created |= ((IMenuProvider) component).onCreateOptionsMenu(menu, menuInflater);
+                }
+            }
+        }
+        return created;
+    }
+
+    boolean dispatchOnOptionsItemSelected(MenuItem item) {
+        Map<ComponentKey, IComponent> componentMap = pageComponentStack.getTopComponentMap();
+        boolean created = false;
+        if (componentMap != null) {
+            for (IComponent component : componentMap.values()) {
+                if (component instanceof IMenuProvider) {
+                    created |= ((IMenuProvider) component).onOptionsItemSelected(item);
+                }
+            }
+        }
+        return created;
+    }
+
+    void dispatchOnCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+        Map<ComponentKey, IComponent> componentMap = pageComponentStack.getTopComponentMap();
+        if (componentMap != null) {
+            for (IComponent component : componentMap.values()) {
+                if (component instanceof IMenuProvider) {
+                    ((IMenuProvider) component).onCreateContextMenu(menu, v, menuInfo);
+                }
+            }
+        }
+    }
+
+    boolean dispatchOnContextItemSelected(MenuItem item) {
+        Map<ComponentKey, IComponent> componentMap = pageComponentStack.getTopComponentMap();
+        boolean created = false;
+        if (componentMap != null) {
+            for (IComponent component : componentMap.values()) {
+                if (component instanceof IMenuProvider) {
+                    created |= ((IMenuProvider) component).onContextItemSelected(item);
+                }
+            }
+        }
+        return created;
     }
 
     // 防止调用之前页面的组件。
@@ -263,17 +320,15 @@ public class ComponentService {
         }
 
         private void putComponent(IComponent component, Object tag) {
-            if (!isEmpty()) {
-                Pair<Integer, Map<ComponentKey, IComponent>> pair = peek();
-                Map<ComponentKey, IComponent> map = null;
-                if (pair != null) {
-                    map = pair.second;
-                }
-                if (map == null) {
-                    map = new HashMap<>();
-                }
-                map.put(new ComponentKey(component.getClass(), tag), component);
+            Pair<Integer, Map<ComponentKey, IComponent>> pair = peek();
+            Map<ComponentKey, IComponent> map = null;
+            if (pair != null) {
+                map = pair.second;
             }
+            if (map == null) {
+                map = new HashMap<>();
+            }
+            map.put(new ComponentKey(component.getClass(), tag), component);
         }
 
         private <C extends IComponent> C getComponent(Class<C> clz, Object tag) {

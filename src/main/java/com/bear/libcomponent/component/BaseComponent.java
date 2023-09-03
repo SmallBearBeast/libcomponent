@@ -6,6 +6,8 @@ import android.view.View;
 
 import androidx.annotation.IdRes;
 
+import com.bear.libcomponent.provider.IContextProvider;
+
 public abstract class BaseComponent extends LifeComponent implements IContextProvider {
     private static final int INIT_COUNT = 32;
 
@@ -50,14 +52,6 @@ public abstract class BaseComponent extends LifeComponent implements IContextPro
             viewIdArray.put(viewId, view);
         }
         return (T) view;
-    }
-
-    protected void onDestroy() {
-
-    }
-
-    protected void onBackPressed() {
-
     }
 
     public View getContentView() {
