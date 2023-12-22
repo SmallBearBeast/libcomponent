@@ -2,7 +2,7 @@ package com.bear.libcomponent.component;
 
 import java.util.Objects;
 
-class ComponentKey<C> {
+class ComponentKey<C extends IComponent> {
     private final Class<C> clz;
     private final Object tag;
 

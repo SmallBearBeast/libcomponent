@@ -18,7 +18,7 @@ public abstract class ComponentFrag extends BaseFrag {
     @CallSuper
     public void onAttach(Context context) {
         super.onAttach(context);
-        ComponentService.get().dispatchOnAttach(context);
+        ComponentService.get().dispatchOnAttach(this, context);
     }
 
     @Nullable
@@ -26,7 +26,7 @@ public abstract class ComponentFrag extends BaseFrag {
     @CallSuper
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View contentView = super.onCreateView(inflater, container, savedInstanceState);
-        ComponentService.get().dispatchOnCreateView(contentView);
+        ComponentService.get().dispatchOnCreateView(this, contentView);
         return contentView;
     }
 
@@ -34,19 +34,19 @@ public abstract class ComponentFrag extends BaseFrag {
     @CallSuper
     public void onDestroyView() {
         super.onDestroyView();
-        ComponentService.get().dispatchOnDestroyView();
+        ComponentService.get().dispatchOnDestroyView(this);
     }
 
     @Override
     @CallSuper
     public void onDetach() {
         super.onDetach();
-        ComponentService.get().dispatchOnDetach();
+        ComponentService.get().dispatchOnDetach(this);
     }
 
     @Override
     protected void onFirstVisible() {
-        ComponentService.get().dispatchOnFirstVisible();
+        ComponentService.get().dispatchOnFirstVisible(this);
     }
 
     public void regFragComponent(IComponent component, Object tag) {

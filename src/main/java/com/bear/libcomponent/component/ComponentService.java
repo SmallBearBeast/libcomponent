@@ -25,10 +25,10 @@ import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-@SuppressWarnings({"unchecked", "rawtypes"})
+// TODO: 2023/12/19 能否统一成组件树的形式，不好实现
 public class ComponentService {
-
     private final PageComponentStack pageComponentStack = new PageComponentStack();
 
     public static ComponentService get() {
@@ -101,6 +101,9 @@ public class ComponentService {
             ((BaseComponent) component).attachContext(activity);
             ((BaseComponent) component).attachView(activity.getDecorView());
         }
+        if (component instanceof ActivityComponent) {
+            ((ActivityComponent) component).attachActivity(activity);
+        }
         pageComponentStack.putComponent(component, tag);
         activity.getLifecycle().addObserver(new LifecycleEventObserver() {
             @Override
@@ -136,7 +139,12 @@ public class ComponentService {
         }
         if (component instanceof BaseComponent) {
             ((BaseComponent) component).attachContext(fragment.getContext());
-            ((BaseComponent) component).attachView(fragment.getView());
+            if (fragment.getView() != null) {
+                ((BaseComponent) component).attachView(fragment.getView());
+            }
+        }
+        if (component instanceof FragmentComponent) {
+            ((FragmentComponent) component).attachFragment(fragment);
         }
         pageComponentStack.putComponent(component, tag);
         lifecycle.addObserver(new LifecycleEventObserver() {
@@ -177,11 +185,11 @@ public class ComponentService {
         return null;
     }
 
-    void dispatchOnCreateView(View contentView) {
+    void dispatchOnCreateView(ComponentFrag componentFrag, View contentView) {
         Map<ComponentKey, IComponent> componentMap = pageComponentStack.getTopComponentMap();
         if (componentMap != null) {
             for (IComponent component : componentMap.values()) {
-                if (component instanceof FragmentComponent) {
+                if (component instanceof FragmentComponent && ((FragmentComponent) component).getFragment() == componentFrag) {
                     ((FragmentComponent) component).attachView(contentView);
                     ((FragmentComponent) component).onCreateView();
                 }
@@ -189,11 +197,11 @@ public class ComponentService {
         }
     }
 
-    void dispatchOnDestroyView() {
+    void dispatchOnDestroyView(ComponentFrag componentFrag) {
         Map<ComponentKey, IComponent> componentMap = pageComponentStack.getTopComponentMap();
         if (componentMap != null) {
             for (IComponent component : componentMap.values()) {
-                if (component instanceof FragmentComponent) {
+                if (component instanceof FragmentComponent && ((FragmentComponent) component).getFragment() == componentFrag) {
                     ((FragmentComponent) component).onDestroyView();
                     ((FragmentComponent) component).attachView(null);
                 }
@@ -201,33 +209,33 @@ public class ComponentService {
         }
     }
 
-    void dispatchOnAttach(Context context) {
+    void dispatchOnAttach(ComponentFrag componentFrag, Context context) {
         Map<ComponentKey, IComponent> componentMap = pageComponentStack.getTopComponentMap();
         if (componentMap != null) {
             for (IComponent component : componentMap.values()) {
-                if (component instanceof FragmentComponent) {
+                if (component instanceof FragmentComponent && ((FragmentComponent) component).getFragment() == componentFrag) {
                     ((FragmentComponent) component).attachContext(context);
                 }
             }
         }
     }
 
-    void dispatchOnDetach() {
+    void dispatchOnDetach(ComponentFrag componentFrag) {
         Map<ComponentKey, IComponent> componentMap = pageComponentStack.getTopComponentMap();
         if (componentMap != null) {
             for (IComponent component : componentMap.values()) {
-                if (component instanceof FragmentComponent) {
+                if (component instanceof FragmentComponent && ((FragmentComponent) component).getFragment() == componentFrag) {
                     ((BaseComponent) component).attachContext(null);
                 }
             }
         }
     }
 
-    void dispatchOnFirstVisible() {
+    void dispatchOnFirstVisible(ComponentFrag componentFrag) {
         Map<ComponentKey, IComponent> componentMap = pageComponentStack.getTopComponentMap();
         if (componentMap != null) {
             for (IComponent component : componentMap.values()) {
-                if (component instanceof FragmentComponent) {
+                if (component instanceof FragmentComponent && ((FragmentComponent) component).getFragment() == componentFrag) {
                     ((FragmentComponent) component).onFirstVisible();
                 }
             }
@@ -241,34 +249,55 @@ public class ComponentService {
                 if (component instanceof IBackPressedProvider) {
                     ((IBackPressedProvider) component).onBackPressed();
                 }
+                if (component instanceof ContainerComponent) {
+                    ((ContainerComponent) component).foreach(com -> {
+                        if (component instanceof IBackPressedProvider) {
+                            ((IBackPressedProvider) component).onBackPressed();
+                        }
+                    });
+                }
             }
         }
     }
 
     boolean dispatchOnCreateOptionsMenu(Menu menu, MenuInflater menuInflater) {
         Map<ComponentKey, IComponent> componentMap = pageComponentStack.getTopComponentMap();
-        boolean created = false;
+        AtomicBoolean created = new AtomicBoolean(false);
         if (componentMap != null) {
             for (IComponent component : componentMap.values()) {
                 if (component instanceof IMenuProvider) {
-                    created |= ((IMenuProvider) component).onCreateOptionsMenu(menu, menuInflater);
+                    created.set(created.get() | ((IMenuProvider) component).onCreateOptionsMenu(menu, menuInflater));
+                }
+                if (component instanceof ContainerComponent) {
+                    ((ContainerComponent) component).foreach(com -> {
+                        if (component instanceof IMenuProvider) {
+                            created.set(created.get() | ((IMenuProvider) component).onCreateOptionsMenu(menu, menuInflater));
+                        }
+                    });
                 }
             }
         }
-        return created;
+        return created.get();
     }
 
     boolean dispatchOnOptionsItemSelected(MenuItem item) {
         Map<ComponentKey, IComponent> componentMap = pageComponentStack.getTopComponentMap();
-        boolean created = false;
+        AtomicBoolean created = new AtomicBoolean(false);
         if (componentMap != null) {
             for (IComponent component : componentMap.values()) {
                 if (component instanceof IMenuProvider) {
-                    created |= ((IMenuProvider) component).onOptionsItemSelected(item);
+                    created.set(created.get() | ((IMenuProvider) component).onOptionsItemSelected(item));
+                }
+                if (component instanceof ContainerComponent) {
+                    ((ContainerComponent) component).foreach(com -> {
+                        if (component instanceof IMenuProvider) {
+                            created.set(created.get() | ((IMenuProvider) component).onOptionsItemSelected(item));
+                        }
+                    });
                 }
             }
         }
-        return created;
+        return created.get();
     }
 
     void dispatchOnCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
@@ -278,21 +307,35 @@ public class ComponentService {
                 if (component instanceof IMenuProvider) {
                     ((IMenuProvider) component).onCreateContextMenu(menu, v, menuInfo);
                 }
+                if (component instanceof ContainerComponent) {
+                    ((ContainerComponent) component).foreach(com -> {
+                        if (component instanceof IMenuProvider) {
+                            ((IMenuProvider) component).onCreateContextMenu(menu, v, menuInfo);
+                        }
+                    });
+                }
             }
         }
     }
 
     boolean dispatchOnContextItemSelected(MenuItem item) {
         Map<ComponentKey, IComponent> componentMap = pageComponentStack.getTopComponentMap();
-        boolean created = false;
+        AtomicBoolean created = new AtomicBoolean(false);
         if (componentMap != null) {
             for (IComponent component : componentMap.values()) {
                 if (component instanceof IMenuProvider) {
-                    created |= ((IMenuProvider) component).onContextItemSelected(item);
+                    created.set(created.get() | ((IMenuProvider) component).onContextItemSelected(item));
+                }
+                if (component instanceof ContainerComponent) {
+                    ((ContainerComponent) component).foreach(com -> {
+                        if (component instanceof IMenuProvider) {
+                            created.set(created.get() | ((IMenuProvider) component).onContextItemSelected(item));
+                        }
+                    });
                 }
             }
         }
-        return created;
+        return created.get();
     }
 
     // 防止调用之前页面的组件。
@@ -320,6 +363,9 @@ public class ComponentService {
         }
 
         private void putComponent(IComponent component, Object tag) {
+            if (component == null) {
+                return;
+            }
             Pair<Integer, Map<ComponentKey, IComponent>> pair = peek();
             Map<ComponentKey, IComponent> map = null;
             if (pair != null) {
@@ -328,7 +374,7 @@ public class ComponentService {
             if (map == null) {
                 map = new HashMap<>();
             }
-            map.put(new ComponentKey(component.getClass(), tag), component);
+            map.put(new ComponentKey<>(component.getClass(), tag), component);
         }
 
         private <C extends IComponent> C getComponent(Class<C> clz, Object tag) {
@@ -337,8 +383,20 @@ public class ComponentService {
                 if (pair != null) {
                     Map<ComponentKey, IComponent> map = pair.second;
                     if (map != null) {
-                        ComponentKey componentKey = new ComponentKey(clz, tag);
-                        return (C) map.get(componentKey);
+                        ComponentKey componentKey = new ComponentKey<>(clz, tag);
+                        IComponent targetComponent = map.get(componentKey);
+                        if (targetComponent != null) {
+                            return (C) targetComponent;
+                        }
+                        for (IComponent component : map.values()) {
+                            if (component instanceof ContainerComponent) {
+                                ContainerComponent containerComponent = (ContainerComponent) component;
+                                targetComponent = containerComponent.travel(componentKey, null);
+                                if (targetComponent != null) {
+                                    return (C) targetComponent;
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -351,7 +409,7 @@ public class ComponentService {
                 if (pair != null) {
                     Map<ComponentKey, IComponent> map = pair.second;
                     if (map != null) {
-                        ComponentKey componentKey = new ComponentKey(component.getClass(), tag);
+                        ComponentKey componentKey = new ComponentKey<>(component.getClass(), tag);
                         map.remove(componentKey);
                     }
                 }
@@ -372,7 +430,7 @@ public class ComponentService {
                 if (pair != null) {
                     Map<ComponentKey, IComponent> map = pair.second;
                     if (map != null) {
-                        ComponentKey componentKey = new ComponentKey(clz, tag);
+                        ComponentKey componentKey = new ComponentKey<>(clz, tag);
                         for (Pair<Integer, Map<ComponentKey, IComponent>> pairMap : this) {
                             if (pairMap.second != null && pairMap.second.containsKey(componentKey)) {
                                 return true;
@@ -391,7 +449,7 @@ public class ComponentService {
                 if (pair != null) {
                     Map<ComponentKey, IComponent> map = pair.second;
                     if (map != null) {
-                        ComponentKey componentKey = new ComponentKey(clz, tag);
+                        ComponentKey componentKey = new ComponentKey<>(clz, tag);
                         return map.containsKey(componentKey);
                     }
                 }

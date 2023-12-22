@@ -6,6 +6,8 @@ import androidx.lifecycle.LifecycleOwner;
 
 public abstract class LifeComponent implements IComponent {
 
+    protected final String TAG = getClass().getSimpleName();
+
     @Override
     public void onStateChanged(@NonNull LifecycleOwner source, @NonNull Lifecycle.Event event) {
         if (event == Lifecycle.Event.ON_CREATE) {

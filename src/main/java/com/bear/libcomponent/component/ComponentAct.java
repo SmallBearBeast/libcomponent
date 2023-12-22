@@ -32,7 +32,6 @@ public abstract class ComponentAct extends BaseAct {
         ComponentService.get().dispatchOnBackPressed();
     }
 
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         return ComponentService.get().dispatchOnCreateOptionsMenu(menu, getMenuInflater());
